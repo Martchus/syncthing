@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
-package main
+package syncthing_main
 
 import (
 	"bytes"
@@ -34,7 +34,6 @@ import (
 	"github.com/thejerf/suture/v4"
 	"github.com/willabides/kongplete"
 
-	"github.com/syncthing/syncthing/cmd/syncthing/cli"
 	"github.com/syncthing/syncthing/cmd/syncthing/cmdutil"
 	"github.com/syncthing/syncthing/cmd/syncthing/decrypt"
 	"github.com/syncthing/syncthing/cmd/syncthing/generate"
@@ -132,8 +131,6 @@ var entrypoint struct {
 	Serve              serveOptions                 `cmd:"" help:"Run Syncthing"`
 	Generate           generate.CLI                 `cmd:"" help:"Generate key and config, then exit"`
 	Decrypt            decrypt.CLI                  `cmd:"" help:"Decrypt or verify an encrypted folder"`
-	Cli                cli.CLI                      `cmd:"" help:"Command line interface for Syncthing"`
-	InstallCompletions kongplete.InstallCompletions `cmd:"" help:"Print commands to install shell completions"`
 }
 
 // serveOptions are the options for the `syncthing serve` command.
@@ -205,12 +202,10 @@ func defaultVars() kong.Vars {
 	return vars
 }
 
-func main() {
+func RunWithArgs(args []string) error {
 	// First some massaging of the raw command line to fit the new model.
 	// Basically this means adding the default command at the front, and
 	// converting -options to --options.
-
-	args := os.Args[1:]
 	switch {
 	case len(args) == 0:
 		// Empty command line is equivalent to just calling serve
@@ -250,6 +245,7 @@ func main() {
 	ctx.BindTo(l, (*logger.Logger)(nil)) // main logger available to subcommands
 	err = ctx.Run()
 	parser.FatalIfErrorf(err)
+	return err
 }
 
 func helpHandler(options kong.HelpOptions, ctx *kong.Context) error {
