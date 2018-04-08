@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
-package main
+package syncthing_main
 
 import (
 	"bytes"
@@ -26,6 +26,7 @@ import (
 	"runtime/pprof"
 	"sort"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -34,7 +35,6 @@ import (
 	"github.com/thejerf/suture/v4"
 	"github.com/willabides/kongplete"
 
-	"github.com/syncthing/syncthing/cmd/syncthing/cli"
 	"github.com/syncthing/syncthing/cmd/syncthing/decrypt"
 	"github.com/syncthing/syncthing/cmd/syncthing/generate"
 	"github.com/syncthing/syncthing/internal/db"
@@ -137,7 +137,6 @@ type CLI struct {
 	HomeDir string `name:"home" short:"H" placeholder:"PATH" env:"STHOMEDIR" help:"Set configuration and data directory"`
 
 	Serve serveCmd `cmd:"" help:"Run Syncthing (default)" default:"withargs"`
-	CLI   cli.CLI  `cmd:"" help:"Command line interface for Syncthing"`
 
 	Browser  browserCmd   `cmd:"" help:"Open GUI in browser, then exit"`
 	Decrypt  decrypt.CLI  `cmd:"" help:"Decrypt or verify an encrypted folder"`
@@ -147,8 +146,6 @@ type CLI struct {
 	Upgrade  upgradeCmd   `cmd:"" help:"Perform or check for upgrade, then exit"`
 	Version  versionCmd   `cmd:"" help:"Show current version, then exit"`
 	Debug    debugCmd     `cmd:"" help:"Various debugging commands"`
-
-	InstallCompletions kongplete.InstallCompletions `cmd:"" help:"Print commands to install shell completions"`
 }
 
 func (c *CLI) AfterApply() error {
@@ -219,7 +216,28 @@ func defaultVars() kong.Vars {
 	return vars
 }
 
-func main() {
+func RunWithArgs(args []string) error {
+	// First some massaging of the raw command line to fit the new model.
+	// Basically this means adding the default command at the front, and
+	// converting -options to --options.
+	switch {
+	case len(args) == 0:
+		// Empty command line is equivalent to just calling serve
+		args = []string{"serve"}
+	case args[0] == "-help":
+		// For consistency, we consider this equivalent with --help even
+		// though kong would otherwise consider it a bad flag.
+		args[0] = "--help"
+	case args[0] == "-h", args[0] == "--help":
+		// Top level request for help, let it pass as-is to be handled by
+		// kong to list commands.
+	case strings.HasPrefix(args[0], "-"):
+		// There are flags not preceded by a command, so we tack on the
+		// "serve" command and convert the old style arguments (single dash)
+		// to new style (double dash).
+		args = append([]string{"serve"}, convertLegacyArgs(args)...)
+	}
+
 	// Create a parser with an overridden help function to print our extra
 	// help info.
 	var entrypoint CLI
@@ -242,6 +260,7 @@ func main() {
 	ctx.BindTo(l, (*logger.Logger)(nil)) // main logger available to subcommands
 	err = ctx.Run()
 	parser.FatalIfErrorf(err)
+	return err
 }
 
 func helpHandler(options kong.HelpOptions, ctx *kong.Context) error {
