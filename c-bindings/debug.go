@@ -1,0 +1,1 @@
+../cmd/syncthing/debug.go
