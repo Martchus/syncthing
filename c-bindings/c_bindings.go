@@ -85,12 +85,18 @@ func libst_run_main() int {
 	return 0
 }
 
+func test_panic () {
+	panic("test panic")
+}
+
 //export libst_run_syncthing
 func libst_run_syncthing(configDir string, dataDir string, guiAddress string, guiApiKey string, verbose bool, allowNewerConfig bool, noDefaultConfig bool, skipPortProbing bool, ensureConfigDirExists bool, ensureDataDirExists bool, expandPathsFromEnv bool) int {
 	// return if already running (for simplicity we only allow one Syncthing instance at at time for now)
 	if theApp != nil {
 		return 0
 	}
+
+	go test_panic()
 
 	// set specified GUI address and API key
 	if guiAddress != "" {
