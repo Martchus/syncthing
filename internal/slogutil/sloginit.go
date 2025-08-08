@@ -20,10 +20,11 @@ var (
 		levels: make(map[string]slog.Level),
 		descrs: make(map[string]string),
 	}
-	slogDef = slog.New(&formattingHandler{
+	handler = formattingHandler{
 		recs: []*lineRecorder{GlobalRecorder, ErrorRecorder},
 		out:  logWriter(),
-	})
+	}
+	slogDef = slog.New(&handler)
 )
 
 func logWriter() io.Writer {
@@ -34,6 +35,10 @@ func logWriter() io.Writer {
 	}
 
 	return os.Stdout
+}
+
+func SetCallback(cb func(Line)) {
+	handler.cb = cb
 }
 
 func init() {
