@@ -22,6 +22,7 @@ type formattingHandler struct {
 	attrs        []slog.Attr
 	groups       []string
 	out          io.Writer
+	cb           func(line Line)
 	recs         []*lineRecorder
 	timeOverride time.Time
 }
@@ -96,6 +97,9 @@ func (h *formattingHandler) Handle(_ context.Context, rec slog.Record) error {
 	// If there's an output, print the line.
 	if h.out != nil {
 		_, _ = line.WriteTo(h.out)
+	}
+	if h.cb != nil {
+		h.cb(line)
 	}
 	return nil
 }
