@@ -19,11 +19,16 @@ var (
 		levels: make(map[string]slog.Level),
 		descrs: make(map[string]string),
 	}
-	slogDef = slog.New(&formattingHandler{
+	handler = formattingHandler{
 		recs: []*lineRecorder{GlobalRecorder, ErrorRecorder},
 		out:  os.Stdout,
-	})
+	}
+	slogDef = slog.New(&handler)
 )
+
+func SetCallback(cb func(Line)) {
+	handler.cb = cb
+}
 
 func init() {
 	slog.SetDefault(slogDef)
