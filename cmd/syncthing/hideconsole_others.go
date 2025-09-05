@@ -6,7 +6,7 @@
 
 //go:build !windows
 
-package main
+package syncthing_main
 
 type buildSpecificOptions struct {
 	HideConsole bool `hidden:""`

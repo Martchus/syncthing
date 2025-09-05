@@ -6,7 +6,7 @@
 
 //go:build !solaris && !windows
 
-package main
+package syncthing_main
 
 import (
 	"fmt"

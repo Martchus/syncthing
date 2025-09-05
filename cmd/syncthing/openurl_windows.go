@@ -6,7 +6,7 @@
 
 //go:build windows
 
-package main
+package syncthing_main
 
 import "golang.org/x/sys/windows"
 

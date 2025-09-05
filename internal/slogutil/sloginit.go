@@ -42,6 +42,10 @@ func logWriter() io.Writer {
 	return os.Stdout
 }
 
+func SetCallback(cb func(Line)) {
+	globalFormatter.cb = cb
+}
+
 func init() {
 	slog.SetDefault(slogDef)
 }
