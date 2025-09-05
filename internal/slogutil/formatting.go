@@ -28,6 +28,7 @@ type formattingOptions struct {
 	LineFormat
 
 	out          io.Writer
+	cb           func(line Line)
 	recs         []*lineRecorder
 	timeOverride time.Time
 }
@@ -112,6 +113,9 @@ func (h *formattingHandler) Handle(_ context.Context, rec slog.Record) error {
 	// If there's an output, print the line.
 	if h.opts.out != nil {
 		_, _ = line.WriteTo(h.opts.out, h.opts.LineFormat)
+	}
+	if h.opts.cb != nil {
+		h.opts.cb(line)
 	}
 	return nil
 }

@@ -6,7 +6,7 @@
 
 //go:build go1.7
 
-package main
+package syncthing_main
 
 import "runtime/debug"
 
