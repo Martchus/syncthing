@@ -7,7 +7,7 @@
 //go:build solaris || windows
 // +build solaris windows
 
-package main
+package syncthing_main
 
 import "github.com/syncthing/syncthing/internal/db"
 
