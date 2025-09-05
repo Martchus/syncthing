@@ -4,7 +4,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
-package main
+package syncthing_main
 
 import (
 	"bytes"
@@ -36,7 +36,6 @@ import (
 	"github.com/thejerf/suture/v4"
 	"github.com/willabides/kongplete"
 
-	"github.com/syncthing/syncthing/cmd/syncthing/cli"
 	"github.com/syncthing/syncthing/cmd/syncthing/decrypt"
 	"github.com/syncthing/syncthing/cmd/syncthing/generate"
 	"github.com/syncthing/syncthing/internal/db"
@@ -127,7 +126,6 @@ type CLI struct {
 	VersionFlag bool   `name:"version" help:"Show current version, then exit"`
 
 	Serve serveCmd `cmd:"" help:"Run Syncthing (default)" default:"withargs"`
-	CLI   cli.CLI  `cmd:"" help:"Command line interface for Syncthing"`
 
 	Browser  browserCmd   `cmd:"" help:"Open GUI in browser, then exit"`
 	Decrypt  decrypt.CLI  `cmd:"" help:"Decrypt or verify an encrypted folder"`
@@ -137,8 +135,6 @@ type CLI struct {
 	Upgrade  upgradeCmd   `cmd:"" help:"Perform or check for upgrade, then exit"`
 	Version  versionCmd   `cmd:"" help:"Show current version, then exit"`
 	Debug    debugCmd     `cmd:"" help:"Various debugging commands"`
-
-	InstallCompletions kongplete.InstallCompletions `cmd:"" help:"Print commands to install shell completions"`
 }
 
 func (c *CLI) AfterApply() error {
@@ -209,7 +205,7 @@ func defaultVars() kong.Vars {
 	return vars
 }
 
-func main() {
+func RunWithArgs(args []string) error {
 	// Create a parser with an overridden help function to print our extra
 	// help info.
 	var entrypoint CLI
@@ -228,16 +224,16 @@ func main() {
 	}
 
 	kongplete.Complete(parser)
-	ctx, err := parser.Parse(os.Args[1:])
+	ctx, err := parser.Parse(args)
 	parser.FatalIfErrorf(err)
 
 	if entrypoint.VersionFlag {
-		_ = versionCmd{}.Run()
-		return
+		return versionCmd{}.Run()
 	}
 
 	err = ctx.Run()
 	parser.FatalIfErrorf(err)
+	return err
 }
 
 func helpHandler(options kong.HelpOptions, ctx *kong.Context) error {
@@ -650,6 +646,10 @@ func loadOrDefaultConfig() (config.Wrapper, error) {
 	return cfg, err
 }
 
+func MakeAuditWriter(auditFile string) io.Writer {
+	return auditWriter(auditFile)
+}
+
 func auditWriter(auditFile string) io.Writer {
 	var fd io.Writer
 	var err error
@@ -1046,6 +1046,11 @@ func (c databaseStatsCmd) printStat(w io.Writer, s *sqlite.DatabaseStatistics) {
 		totalName += " + children"
 	}
 	fmt.Fprintf(w, "%s\t%s\t%s\t%8d KiB\t%5.01f %%\n", totalName, cmp.Or(s.FolderID, "-"), "(total)", s.Total.Size/1024, float64(s.Total.Size-s.Total.Unused)*100/float64(s.Total.Size))
+}
+
+func SetConfigDataLocationsFromFlags(homeDir, confDir, dataDir string) error {
+	// public version of SetConfigDataLocationsFromFlags for use within "cmd/syncthing/cli/main.go"
+	return setConfigDataLocationsFromFlags(homeDir, confDir, dataDir)
 }
 
 func setConfigDataLocationsFromFlags(homeDir, confDir, dataDir string) error {
