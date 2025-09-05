@@ -7,7 +7,7 @@
 //go:build windows
 // +build windows
 
-package main
+package syncthing_main
 
 import "os/exec"
 
