@@ -7,17 +7,21 @@
 package cli
 
 import (
-	"bufio"
 	"fmt"
-	"os"
 
 	"github.com/alecthomas/kong"
-	"github.com/kballard/go-shellquote"
+	"github.com/willabides/kongplete"
 
+	syncthing_main "github.com/syncthing/syncthing/cmd/syncthing"
 	"github.com/syncthing/syncthing/lib/config"
 )
 
 type CLI struct {
+	// repeat dir flags from "type CLI struct" in "cmd/syncthing/main.go" to have them despite only using the sub-level CLI parser
+	ConfDir string `name:"config" short:"C" placeholder:"PATH" env:"STCONFDIR" help:"Set configuration directory (config and keys)"`
+	DataDir string `name:"data" short:"D" placeholder:"PATH" env:"STDATADIR" help:"Set data directory (database and logs)"`
+	HomeDir string `name:"home" short:"H" placeholder:"PATH" env:"STHOMEDIR" help:"Set configuration and data directory"`
+
 	GUIAddress string `name:"gui-address" env:"STGUIADDRESS"`
 	GUIAPIKey  string `name:"gui-apikey" env:"STGUIAPIKEY"`
 
@@ -34,6 +38,10 @@ type Context struct {
 }
 
 func (cli CLI) AfterApply(kongCtx *kong.Context) error {
+	error := syncthing_main.SetConfigDataLocationsFromFlags(cli.HomeDir, cli.ConfDir, cli.DataDir)
+	if error != nil {
+		return error
+	}
 	clientFactory := &apiClientFactory{
 		cfg: config.GUIConfiguration{
 			RawAddress: cli.GUIAddress,
@@ -51,37 +59,22 @@ func (cli CLI) AfterApply(kongCtx *kong.Context) error {
 
 type stdinCommand struct{}
 
-func (*stdinCommand) Run() error {
-	// Drop the `-` not to recurse into self.
-	args := make([]string, len(os.Args)-1)
-	copy(args, os.Args)
-
-	fmt.Println("Reading commands from stdin...", args)
-	scanner := bufio.NewScanner(os.Stdin)
-	for scanner.Scan() {
-		input, err := shellquote.Split(scanner.Text())
-		if err != nil {
-			return fmt.Errorf("parsing input: %w", err)
-		}
-		if len(input) == 0 {
-			continue
-		}
-
-		var cli CLI
-		p, err := kong.New(&cli)
-		if err != nil {
-			// can't happen, really
-			return fmt.Errorf("creating parser: %w", err)
-		}
-		ctx, err := p.Parse(input)
-		if err != nil {
-			fmt.Println("Error:", err)
-			continue
-		}
-		if err := ctx.Run(); err != nil {
-			fmt.Println("Error:", err)
-			continue
-		}
+func RunWithArgs(args []string) error {
+	var cli CLI
+	p, err := kong.New(&cli)
+	if err != nil {
+		// can't happen, really
+		return fmt.Errorf("creating parser: %w", err)
 	}
-	return scanner.Err()
+	kongplete.Complete(p)
+	ctx, err := p.Parse(args)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return err
+	}
+	if err := ctx.Run(); err != nil {
+		fmt.Println("Error:", err)
+		return err
+	}
+	return nil
 }
