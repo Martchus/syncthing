@@ -4,8 +4,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at https://mozilla.org/MPL/2.0/.
 
-package syncthing_main
+package main
 
-import "github.com/syncthing/syncthing/internal/slogutil"
+import (
+	"github.com/syncthing/syncthing/internal/slogutil"
+)
 
-func init() { slogutil.RegisterPackage("Syncthing package") }
+func init() { slogutil.RegisterPackage("Main package") }
