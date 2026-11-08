@@ -291,10 +291,13 @@ func libst_run_syncthing(configDir string, dataDir string, guiAddress string, gu
 //export libst_stop_syncthing
 func libst_stop_syncthing() int {
 	if theApp != nil {
+		slog.Info("Stopping built-in Syncthing")
 		return int(theApp.Stop(svcutil.ExitSuccess))
 	} else if syncthing_main.RunningApp != nil {
+		slog.Info("Stopping built-in Syncthing (started via CLI)")
 		return int(syncthing_main.RunningApp.Stop(svcutil.ExitSuccess))
 	} else {
+		slog.Info("Attempt to stop built-in Syncthing (was not running anyway)")
 		return 0
 	}
 }
