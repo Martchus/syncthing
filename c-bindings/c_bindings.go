@@ -292,6 +292,8 @@ func libst_run_syncthing(configDir string, dataDir string, guiAddress string, gu
 func libst_stop_syncthing() int {
 	if theApp != nil {
 		return int(theApp.Stop(svcutil.ExitSuccess))
+	} else if syncthing_main.RunningApp != nil {
+		return int(syncthing_main.RunningApp.Stop(svcutil.ExitSuccess))
 	} else {
 		return 0
 	}

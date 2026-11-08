@@ -58,6 +58,8 @@ const (
 	sigTerm = syscall.Signal(15)
 )
 
+var RunningApp *syncthing.App
+
 const (
 	extraUsage = `
 Logging always happens to the command line (stdout) and optionally to the
@@ -566,6 +568,8 @@ func (c *serveCmd) syncthingMain() {
 		slog.Error("Failed to start Syncthing", slogutil.Error(err))
 		os.Exit(svcutil.ExitError.AsInt())
 	}
+	RunningApp = app
+	defer func() { RunningApp = nil }()
 
 	if autoUpgradePossible {
 		go autoUpgrade(cfgWrapper, app, evLogger)
