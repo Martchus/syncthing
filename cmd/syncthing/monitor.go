@@ -544,9 +544,13 @@ func childEnv() []string {
 		if strings.HasPrefix(str, "STMONITORED=") {
 			continue
 		}
+		if strings.HasPrefix(str, "STMONITORED_BY_PARENT=") {
+			continue
+		}
 		env = append(env, str)
 	}
 	env = append(env, "STMONITORED=yes")
+	env = append(env, "STMONITORED_BY_PARENT=yes")
 	return env
 }
 

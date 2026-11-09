@@ -402,6 +402,15 @@ func upgradeViaRest() error {
 }
 
 func (c *serveCmd) syncthingMain() {
+	if os.Getenv("STMONITORED_BY_PARENT") == "" {
+		dst, closer := c.setupLogging()
+		if closer != nil {
+			defer closer.Close()
+		}
+		slogutil.SetOutput(dst)
+		defer slogutil.SetOutput(os.Stdout)
+	}
+
 	// Ensure we are the only running instance
 	lf := flock.New(locations.Get(locations.LockFile))
 	locked, err := lf.TryLock()

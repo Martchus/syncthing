@@ -46,6 +46,14 @@ func SetCallback(cb func(Line)) {
 	globalFormatter.cb = cb
 }
 
+func SetOutput(out io.Writer) {
+	globalFormatter.out = out
+}
+
+func Output() io.Writer {
+	return globalFormatter.out
+}
+
 func init() {
 	slog.SetDefault(slogDef)
 }
