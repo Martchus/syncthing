@@ -46,7 +46,7 @@ const (
 	panicUploadNoticeWait = 10 * time.Second
 )
 
-func (c *serveCmd) monitorMain() {
+func (c *serveCmd) setupLogging() (io.Writer, io.Closer) {
 	var dst io.Writer = os.Stdout
 
 	logFile := locations.Get(locations.LogFile)
@@ -54,7 +54,7 @@ func (c *serveCmd) monitorMain() {
 		if expanded, err := fs.ExpandTilde(logFile); err == nil {
 			logFile = expanded
 		}
-		var fileDst io.Writer
+		var fileDst io.WriteCloser
 		var err error
 		open := func(name string) (io.WriteCloser, error) {
 			return newAutoclosedFile(name, logFileAutoCloseDelay, logFileMaxOpenTime)
@@ -67,9 +67,10 @@ func (c *serveCmd) monitorMain() {
 		if err != nil {
 			slog.Error("Failed to set up logging to file, proceeding with logging to stdout only", slogutil.Error(err))
 		} else {
+			var writer io.Writer = fileDst
 			if build.IsWindows {
 				// Translate line breaks to Windows standard
-				fileDst = osutil.ReplacingWriter{
+				writer = osutil.ReplacingWriter{
 					Writer: fileDst,
 					From:   '\n',
 					To:     []byte{'\r', '\n'},
@@ -81,10 +82,20 @@ func (c *serveCmd) monitorMain() {
 			// them fails, which matters because stdout may not be a
 			// valid writer at all (e.g. when started detached from any
 			// console on Windows).
-			dst = osutil.TolerantMultiWriter{dst, fileDst}
+			dst = osutil.TolerantMultiWriter{dst, writer}
 
 			slog.Info("Saved log output", slogutil.FilePath(logFile))
+			return dst, fileDst
 		}
+	}
+
+	return dst, nil
+}
+
+func (c *serveCmd) monitorMain() {
+	dst, closer := c.setupLogging()
+	if closer != nil {
+		defer closer.Close()
 	}
 
 	args := os.Args
@@ -400,6 +411,13 @@ func (r *rotatedFile) rotate() {
 	if err != nil && !os.IsNotExist(err) {
 		fmt.Println("LOG: Rotating logs:", err)
 	}
+}
+
+func (r *rotatedFile) Close() error {
+	if r.currentFile != nil {
+		return r.currentFile.Close()
+	}
+	return nil
 }
 
 // numberedFile adds the number between the file name and the extension.
